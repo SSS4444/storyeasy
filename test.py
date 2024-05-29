@@ -1,19 +1,21 @@
 # -*- coding: utf-8 -*-
 
-from openai import OpenAI
+import openai
 import os
 import json
 import time
 
-client = OpenAI(
-    api_key="sk-RjAGV8eReTIx",
-    base_url="https://api.moonshot.cn/v1",
-)
+openai.base_url = "https://api.chatnio.net/v1" # 接入点
+openai.api_key = "sk-2d6eb0" # 填写上文获取的 API Key
+openai.skip_checking = True # 跳过模型检查
+
+
+
 
 #判断用户决策合理与否
 def judge_action(action):
-    completion = client.chat.completions.create(
-        model="moonshot-v1-8k",
+    completion = openai.ChatCompletion.create(
+        model="gpt-4o",
         messages=[
             {"role": "system",
              "content": "你是一个小红帽行为合理与否的检查者。用户是小红帽，traits: [善良勇敢, 好奇心强, 穿着红色斗篷, 善于交朋友, 对森林生物有爱心],小红帽是一个活泼可爱的小女孩，她以她的善良和勇气而闻名。她喜欢穿着她标志性的红色斗篷，这使她在森林中非常显眼。她对森林中的动物和植物都充满了爱心，她的任务是安全地前往奶奶的小屋，并收集一些有用的草药。她坚信家人的爱是她最大的财富。她会输入一些行为，如果符合规则，规则是这是一个童话世界，只要小红帽的行为不是非常不合理，比如杀人，这不符合小红帽善良的特点；与大灰狼肉搏成功，这不符合小红帽是个小女孩的特点。那就允许。你输出1，不合理你输出0，并且输出不合理的理由，以字符串的形式输出，输出的形式是0，理由，邀请用户重新输入决策，输出格式为字符串"},
@@ -27,8 +29,8 @@ history=[]
 
 #依据用户合理的行为生成回复
 def gen_response(last_story,action):
-    completion = client.chat.completions.create(
-            model="moonshot-v1-8k",
+    completion = openai.ChatCompletion.create(
+            model="gpt-4o",
             messages=[
             {"role": "system",
             "content":"小红帽故事的主要人物描述是：- 小红帽（用户扮演）：小红帽是一个活泼可爱的小女孩，她以她的善良和勇气而闻名。她喜欢穿着她标志性的红色斗篷，这使她在森林中非常显眼。她对森林中的动物和植物都充满了爱心，她的任务是安全地前往奶奶的小屋，并收集一些有用的草药。她坚信家人的爱是她最大的财富。- 大灰狼：大灰狼是森林中的一个狡猾而危险的掠食者，以其强壮的身体和狩猎技巧而闻名。他擅长伪装和设下陷阱，他的任务是寻找猎物并设下陷阱来捕捉它们。他对小红帽和她的奶奶怀有恶意，并且相信只有力量和狡猾才能在森林中生存。- 奶奶：小红帽的奶奶，生病了，住在森林那头的小屋里。奶奶是一个慈祥和智慧的老人，她以其对家庭的深厚爱和丰富的生活经验而闻名。她擅长讲故事，并且对森林中的动植物有着深刻的了解。她的任务是照顾小红帽，并传授她智慧和故事。她相信家庭和智慧是生命中最宝贵的东西。- 猎人：猎人是森林中的一位勇敢和坚定的保护者，他以其射击技巧和对森林的保护而闻名。他对动物有同情心，并且对正义有着坚定的信念。他的任务是保护森林和它的居民，追踪并对抗那些威胁到和平的生物，如大灰狼。他相信正义和保护是他的职责。"},
@@ -37,7 +39,8 @@ def gen_response(last_story,action):
             {"role": "system",
             "content": f"###你应该保留的记忆情节是：{last_story}。"},
             {"role": "system",
-             "content": "你正在参与一个互动式童话故事创作，你扮演一个和用户一起讲小红帽故事的主持人，用户扮演小红帽，你要根据用户输入的行为以及童话世界的法则来生成相应的回复，然后邀请引导用户接着做出决策"},
+             "content":
+                 "你正在参与一个互动式童话故事创作，你扮演一个和用户一起讲小红帽故事的主持人，用户扮演小红帽，你要根据用户输入的行为以及童话世界的法则来生成相应的回复，然后邀请引导用户接着做出决策，当故事情节走到终点，已经无法进行讲述的时候，，你要输出故事结束的提示，以*结尾，以字符串返回输出结果"},
             {"role": "user", "content": action}
             ],
             temperature=0.5,
@@ -51,8 +54,8 @@ def gen_response(last_story,action):
 #记录总结故事情节
 def gen_easy_story(h_history):
     history_json = json.dumps(h_history)
-    completion = client.chat.completions.create(
-        model="moonshot-v1-8k",
+    completion = openai.ChatCompletion.create(
+        model="gpt-4o",
         messages=[
             {"role": "system",
              "content": "你要根据这个对话总结出故事情节，要求，简单，最大限度保留故事情节，以字符串形式输出"},
@@ -79,6 +82,7 @@ while True:
         ans_judge_action = judge_action(use_action)
     response = gen_response(last_story_description,use_action)
     print(response)
-    time.sleep(60)
-
     current_story_description = gen_easy_story(history)
+    if current_story_description[-1] == '*':
+        print(current_story_description)
+        break
